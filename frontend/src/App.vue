@@ -1,47 +1,69 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
+import { onMounted, ref } from "vue";
+
+interface Note {
+    id: number;
+    title: string;
+    content: string;
+    is_done: boolean;
+    created_at: string;
+}
+
+const notes = ref<Note[]>([]);
+const loading = ref(true);
+const error = ref("");
+
+onMounted(async () => {
+    try {
+        const response = await fetch("http://127.0.0.1:8000/api/notes/");
+
+        if (!response.ok) {
+            throw new Error(`Помилка сервера: ${response.status}`);
+        }
+
+        const data: { notes: Note[] } = await response.json();
+        notes.value = data.notes;
+    } catch (e) {
+        error.value =
+            e instanceof Error ? e.message : "Не вдалося завантажити нотатки";
+    } finally {
+        loading.value = false;
+    }
+});
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
+    <main class="main">
+        <h1>Нотатки</h1>
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-    </div>
-  </header>
+        <p v-if="loading">Завантаження...</p>
+        <p v-else-if="error">{{ error }}</p>
 
-  <main>
-    <TheWelcome />
-  </main>
+        <ul v-else class="notes-grid">
+            <li v-for="note in notes" :key="note.id" class="note-card">
+                <strong>{{ note.title }}</strong>
+                <p>{{ note.content }}</p>
+                <span>{{ note.is_done ? "Виконано" : "Не виконано" }}</span>
+            </li>
+        </ul>
+    </main>
 </template>
 
 <style scoped>
-header {
-  line-height: 1.5;
+.main {
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
+.notes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+    padding: 0;
+    list-style: none;
 }
 
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
-
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
+.note-card {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    padding: 12px;
 }
 </style>
